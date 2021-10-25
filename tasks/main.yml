@@ -1,0 +1,28 @@
+---
+# tasks file for chrony
+
+- name: Import assert.yml
+  import_tasks: assert.yml
+
+- name: Verify chronyd is installed
+  package:
+    name: "{{ chrony_packages }}"
+    state: present
+    update_cache: yes
+
+- name: Edit chrony config file
+  template:
+    src: chrony.conf
+    dest: "{{ chrony_etc_path }}/chrony.conf"
+    mode: "{{ chrony_cfg_mode }}"
+  notify:
+    - Restart service
+
+# Chronyd is not recommended for containers, it will cause errors
+# So do not enable and run it
+- name: Enable service
+  service:
+    name: "{{ chrony_service }}"
+    state: started
+    enabled: true
+  when: ansible_virtualization_type not in _container_types

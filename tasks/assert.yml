@@ -1,0 +1,117 @@
+---
+
+- name: Check variables that contains path
+  vars:
+    pathre: '^(?:[\/])$|^(?:[\/][a-zA-Z0-9_.-]+)+[\/]?$'
+    litem: "{{ lookup('vars', item) }}"
+  assert:
+    that:
+      - vars[item] is defined
+      - litem is string
+      - litem is regex(pathre)
+    quiet: yes
+  loop:
+    - chrony_driftfile
+    - chrony_logdir
+    - chrony_keyfile
+
+- name: Check optional variable chrony_ntsdumpdir
+  vars:
+    pathre: '^(?:[\/])$|^(?:[\/][a-zA-Z0-9_.-]+)+[\/]?$'
+  assert:
+    that:
+      - chrony_ntsdumpdir is string
+      - chrony_ntsdumpdir is regex(pathre)
+    quiet: yes
+  when: chrony_ntsdumpdir is defined
+
+- name: Check list variables
+  vars:
+    litem: "{{ lookup('vars', item) }}"
+  assert:
+    that:
+      - litem is iterable
+      - lookup('vars', item) | length
+    quiet: yes
+  when: vars[item] is defined
+  loop:
+    - chrony_servers
+    - chrony_pools
+    - chrony_sourcedir
+    - chrony_allow
+
+- name: Check mandatory variables
+  assert:
+    that:
+      - chrony_servers is defined or chrony_pools is defined
+      - chrony_servers | default([]) | length > 0 or chrony_pools | default([]) | length > 0
+      - chrony_makestep is defined
+      - chrony_makestep is string
+      - chrony_makestep is regex('\d+\.?\d*\s\d+')
+      - chrony_enable_rtcsync is defined
+      - chrony_enable_rtcsync | type_debug == 'bool'
+    quiet: yes
+
+- name: Check variable chrony_maxupdateskew
+  assert:
+    that:
+      - chrony_maxupdateskew is number
+      - chrony_maxupdateskew > 0
+    quiet: yes
+  when: chrony_maxupdateskew is defined
+
+- name: Check variable chrony_hwtimestamp
+  assert:
+    that:
+      - chrony_hwtimestamp is string
+      - chrony_hwtimestamp | length > 0
+    quiet: yes
+  when: chrony_hwtimestamp is defined
+
+- name: Check variable chrony_minsources
+  assert:
+    that:
+      - chrony_minsources is number
+      - chrony_minsources > 0
+    quiet: yes
+  when: chrony_minsources is defined
+
+- name: Check variable chrony_local
+  assert:
+    that:
+      - chrony_local is string
+      - chrony_local | length > 0
+    quiet: yes
+  when: chrony_local is defined
+
+- name: Check variable chrony_leapsecmode
+  assert:
+    that:
+      - chrony_leapsecmode is string
+      - chrony_leapsecmode in ['system', 'step', 'slew', 'ignore']
+    quiet: yes
+  when: chrony_leapsecmode is defined
+
+- name: Check variable chrony_authselectmode
+  assert:
+    that:
+      - chrony_authselectmode is string
+      - chrony_authselectmode in ['require', 'prefer', 'mix', 'ignore']
+    quiet: yes
+  when: chrony_authselectmode is defined
+
+- name: Check variable chrony_leapsectz
+  assert:
+    that:
+      - chrony_leapsectz is string
+      - chrony_leapsectz | length > 0
+    quiet: yes
+  when: chrony_leapsectz is defined
+
+- name: Check variable chrony_log
+  assert:
+    that:
+      - chrony_log is string
+      - chrony_log | length > 0
+    quiet: yes
+  when: chrony_log is defined

@@ -1,0 +1,33 @@
+---
+- name: Converge
+  hosts: all
+  vars:
+    chrony_pools:
+      - pool.ntp.org          iburst maxsources 4
+      - ntp.ubuntu.com        iburst maxsources 4
+      - 0.ubuntu.pool.ntp.org iburst maxsources 1
+      - 1.ubuntu.pool.ntp.org iburst maxsources 1
+      - 2.ubuntu.pool.ntp.org iburst maxsources 2
+    chrony_driftfile: /var/lib/chrony/drift
+    chrony_makestep: 1.0 3
+    chrony_maxupdateskew: 100.0
+    chrony_enable_rtcsync: true
+    chrony_minsources: 2
+    chrony_allow:
+      - 192.168.0.0/16
+    chrony_local: stratum 10
+    chrony_keyfile: "{{ chrony_etc_path }}/chrony.keys"
+    chrony_leapsecmode: slew
+    chrony_logdir: /var/log/chrony
+    chrony_log: measurements statistics tracking
+
+  pre_tasks:
+
+    - name: update Ubuntu/Debian systems cache
+      apt:
+        update_cache: true
+        cache_valid_time: 3600
+      when: ansible_pkg_mgr == "apt"
+
+  roles:
+    - role: guidugli.chrony

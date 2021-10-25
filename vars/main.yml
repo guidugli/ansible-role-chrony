@@ -1,0 +1,23 @@
+---
+# vars file for chrony
+
+chrony_service: chronyd
+
+_chrony_packages:
+  default: ['chrony']
+
+chrony_packages: "{{ _chrony_packages[ansible_distribution ~ '-' ~ ansible_distribution_major_version] |
+                 default(_chrony_packages[ansible_distribution]) | default(_chrony_packages['default']) }}"
+
+_chrony_etc_path:
+  default: /etc/chrony
+  RedHat: /etc
+  Fedora: /etc
+  CentOS: /etc
+
+chrony_etc_path: "{{ _chrony_etc_path[ansible_distribution ~ '-' ~ ansible_distribution_major_version] |
+                 default(_chrony_etc_path[ansible_distribution]) | default(_chrony_etc_path['default']) }}"
+
+chrony_cfg_mode: '0644'
+
+_container_types: ['docker', 'podman', 'lxc', 'containerd']
