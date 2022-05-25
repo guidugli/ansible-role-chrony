@@ -4,7 +4,7 @@
   vars:
     pathre: '^(?:[\/])$|^(?:[\/][a-zA-Z0-9_.-]+)+[\/]?$'
     litem: "{{ lookup('vars', item) }}"
-  assert:
+  ansible.builtin.assert:
     that:
       - vars[item] is defined
       - litem is string
@@ -18,7 +18,7 @@
 - name: Check optional variable chrony_ntsdumpdir
   vars:
     pathre: '^(?:[\/])$|^(?:[\/][a-zA-Z0-9_.-]+)+[\/]?$'
-  assert:
+  ansible.builtin.assert:
     that:
       - chrony_ntsdumpdir is string
       - chrony_ntsdumpdir is regex(pathre)
@@ -28,7 +28,7 @@
 - name: Check list variables
   vars:
     litem: "{{ lookup('vars', item) }}"
-  assert:
+  ansible.builtin.assert:
     that:
       - litem is iterable
       - lookup('vars', item) | length
@@ -41,7 +41,7 @@
     - chrony_allow
 
 - name: Check mandatory variables
-  assert:
+  ansible.builtin.assert:
     that:
       - chrony_servers is defined or chrony_pools is defined
       - chrony_servers | default([]) | length > 0 or chrony_pools | default([]) | length > 0
@@ -53,7 +53,7 @@
     quiet: yes
 
 - name: Check variable chrony_maxupdateskew
-  assert:
+  ansible.builtin.assert:
     that:
       - chrony_maxupdateskew is number
       - chrony_maxupdateskew > 0
@@ -61,7 +61,7 @@
   when: chrony_maxupdateskew is defined
 
 - name: Check variable chrony_hwtimestamp
-  assert:
+  ansible.builtin.assert:
     that:
       - chrony_hwtimestamp is string
       - chrony_hwtimestamp | length > 0
@@ -69,7 +69,7 @@
   when: chrony_hwtimestamp is defined
 
 - name: Check variable chrony_minsources
-  assert:
+  ansible.builtin.assert:
     that:
       - chrony_minsources is number
       - chrony_minsources > 0
@@ -77,7 +77,7 @@
   when: chrony_minsources is defined
 
 - name: Check variable chrony_local
-  assert:
+  ansible.builtin.assert:
     that:
       - chrony_local is string
       - chrony_local | length > 0
@@ -85,7 +85,7 @@
   when: chrony_local is defined
 
 - name: Check variable chrony_leapsecmode
-  assert:
+  ansible.builtin.assert:
     that:
       - chrony_leapsecmode is string
       - chrony_leapsecmode in ['system', 'step', 'slew', 'ignore']
@@ -93,7 +93,7 @@
   when: chrony_leapsecmode is defined
 
 - name: Check variable chrony_authselectmode
-  assert:
+  ansible.builtin.assert:
     that:
       - chrony_authselectmode is string
       - chrony_authselectmode in ['require', 'prefer', 'mix', 'ignore']
@@ -101,7 +101,7 @@
   when: chrony_authselectmode is defined
 
 - name: Check variable chrony_leapsectz
-  assert:
+  ansible.builtin.assert:
     that:
       - chrony_leapsectz is string
       - chrony_leapsectz | length > 0
@@ -109,7 +109,7 @@
   when: chrony_leapsectz is defined
 
 - name: Check variable chrony_log
-  assert:
+  ansible.builtin.assert:
     that:
       - chrony_log is string
       - chrony_log | length > 0

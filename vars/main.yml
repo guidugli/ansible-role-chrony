@@ -20,4 +20,4 @@ chrony_etc_path: "{{ _chrony_etc_path[ansible_distribution ~ '-' ~ ansible_distr
 
 chrony_cfg_mode: '0644'
 
-_container_types: ['docker', 'podman', 'lxc', 'containerd']
+_container_types: ['docker', 'podman', 'lxc', 'containerd', 'container']

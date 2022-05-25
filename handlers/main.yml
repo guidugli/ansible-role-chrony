@@ -2,7 +2,7 @@
 # handlers file for chrony
 
 - name: Restart service
-  service:
+  ansible.builtin.service:
     state: restarted
     name: "{{ chrony_service }}"
   when: ansible_virtualization_type not in _container_types
