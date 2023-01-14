@@ -23,7 +23,7 @@
 
   pre_tasks:
 
-    - name: update Ubuntu/Debian systems cache
+    - name: Update Ubuntu/Debian systems cache
       ansible.builtin.apt:
         update_cache: true
         cache_valid_time: 3600
