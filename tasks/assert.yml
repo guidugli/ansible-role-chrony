@@ -14,16 +14,8 @@
     - chrony_driftfile
     - chrony_logdir
     - chrony_keyfile
-
-- name: Check optional variable chrony_ntsdumpdir
-  vars:
-    pathre: '^(?:[\/])$|^(?:[\/][a-zA-Z0-9_.-]+)+[\/]?$'
-  ansible.builtin.assert:
-    that:
-      - chrony_ntsdumpdir is string
-      - chrony_ntsdumpdir is regex(pathre)
-    quiet: yes
-  when: chrony_ntsdumpdir is defined
+    - chrony_ntsdumpdir
+    - chrony_dhcp_sourcedir
 
 - name: Check list variables
   vars:
@@ -39,6 +31,7 @@
     - chrony_pools
     - chrony_sourcedir
     - chrony_allow
+    - chrony_generic_settings
 
 - name: Check mandatory variables
   ansible.builtin.assert:
@@ -50,6 +43,9 @@
       - chrony_makestep is regex('\d+\.?\d*\s\d+')
       - chrony_enable_rtcsync is defined
       - chrony_enable_rtcsync | type_debug == 'bool'
+      - chrony_leapsecmode is defined
+      - chrony_leapsecmode is string
+      - chrony_leapsecmode | lower in ['system', 'step', 'slew', 'ignore']
     quiet: yes
 
 - name: Check variable chrony_maxupdateskew
@@ -106,7 +102,6 @@
       - chrony_leapsectz is string
       - chrony_leapsectz | length > 0
     quiet: yes
-  when: chrony_leapsectz is defined
 
 - name: Check variable chrony_log
   ansible.builtin.assert:

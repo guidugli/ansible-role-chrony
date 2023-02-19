@@ -20,6 +20,11 @@
     chrony_leapsecmode: slew
     chrony_logdir: /var/log/chrony
     chrony_log: measurements statistics tracking
+    chrony_generic_settings:
+      - { key: noclientlog }
+      - { key: maxclockerror, value: 1 }
+      - { key: inexistent, value: any, minversion: 999 }
+      - { key: corrtimeratio, value: 3, minversion: 3 }
 
   pre_tasks:
 

@@ -14,9 +14,12 @@ _chrony_etc_path:
   RedHat: /etc
   Fedora: /etc
   CentOS: /etc
+  Rocky: /etc
 
 chrony_etc_path: "{{ _chrony_etc_path[ansible_distribution ~ '-' ~ ansible_distribution_major_version] |
                  default(_chrony_etc_path[ansible_distribution]) | default(_chrony_etc_path['default']) }}"
+
+chrony_dhcp_source_dir: "/run/chrony-dhcp"
 
 chrony_cfg_mode: '0644'
 

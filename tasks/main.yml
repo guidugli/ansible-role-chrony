@@ -10,11 +10,74 @@
     state: present
     update_cache: yes
 
+- name: Gather the package facts
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Get chronny major version
+  ansible.builtin.set_fact:
+    chrony_major_version: "{{ ansible_facts.packages['chrony'][0].version | split('.') | first | int }}"
+
+- name: Show installed version
+  ansible.builtin.debug:
+    msg:
+      - "Major version: {{ chrony_major_version }}"
+      - "Version string: {{ ansible_facts.packages['chrony'][0].version }}"
+
+- name: Check if conf.d directory exists
+  ansible.builtin.stat:
+    path: "{{ chrony_etc_path }}/conf.d"
+  register: ch_conf_d
+
+- name: Check if sources.d directory exists
+  ansible.builtin.stat:
+    path: "{{ chrony_etc_path }}/sources.d"
+  register: ch_sources_d
+
+- name: Create true/false variables
+  ansible.builtin.set_fact:
+    chrony_conf_dir_exists: "{{ ch_conf_d.stat.exists and ch_conf_d.stat.isdir }}"
+    chrony_sources_dir_exists: "{{ ch_sources_d.stat.exists and ch_sources_d.stat.isdir }}"
+
+- name: Output of variables
+  ansible.builtin.debug:
+    msg:
+      - "ch_conf_d: {{ ch_conf_d }}"
+      - "ch_sources_d: {{ ch_sources_d }}"
+      - "chrony_conf_dir_exists: {{ chrony_conf_dir_exists }}"
+      - "chrony_sources_dir_exists: {{ chrony_sources_dir_exists }}"
+
 - name: Edit chrony config file
+  vars:
+    filename: "{{ 'chrony_with_conf_d.conf' if chrony_conf_dir_exists else 'chrony.conf' }}"
   ansible.builtin.template:
-    src: chrony.conf
-    dest: "{{ chrony_etc_path }}/chrony.conf"
+    src: "{{ filename }}"
+    dest: "{{ chrony_etc_path }}/{{ filename }}"
     mode: "{{ chrony_cfg_mode }}"
+    force: yes
+    backup: yes
+  notify:
+    - Restart service
+
+- name: Edit chrony conf.d config file
+  ansible.builtin.template:
+    src: conf_d_settings.conf
+    dest: "{{ chrony_etc_path }}/conf.d/01-ansible.conf"
+    mode: "{{ chrony_cfg_mode }}"
+    force: yes
+    backup: yes
+  when: chrony_conf_dir_exists
+  notify:
+    - Restart service
+
+- name: Edit chrony sources.d config file
+  ansible.builtin.template:
+    src: sources_d_settings.conf
+    dest: "{{ chrony_etc_path }}/sources.d/01-ansible.sources"
+    mode: "{{ chrony_cfg_mode }}"
+    force: yes
+    backup: yes
+  when: chrony_sources_dir_exists
   notify:
     - Restart service
 
