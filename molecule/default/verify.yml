@@ -4,11 +4,22 @@
 - name: Verify
   hosts: all
   tasks:
-    - name: Check if configuration is ok
-      ansible.builtin.command: chronyd -p
-      changed_when: false
-      register: chrony_result
+    - name: Gather the package facts
+      ansible.builtin.package_facts:
+        manager: auto
 
-    - name: Show output of chronyd -p command
-      ansible.builtin.debug:
-        msg: "{{ chrony_result }}"
+    - name: Get chronny major version
+      ansible.builtin.set_fact:
+        chrony_major_version: "{{ ansible_facts.packages['chrony'][0].version | split('.') | first | int }}"
+
+    - name: Check if configuration is valid
+      when: chrony_major_version | int(1) >= 4
+      block:
+        - name: Check if configuration is ok
+          ansible.builtin.command: chronyd -p
+          changed_when: false
+          register: chrony_result
+
+        - name: Show output of chronyd -p command
+          ansible.builtin.debug:
+            msg: "{{ chrony_result }}"
