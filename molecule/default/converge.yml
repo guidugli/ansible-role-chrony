@@ -34,5 +34,12 @@
         cache_valid_time: 3600
       when: ansible_pkg_mgr == "apt"
 
+    - name: Install python3-dnf on Fedora systems
+      ansible.builtin.raw: dnf install -y python3-dnf
+      args:
+        executable: /bin/bash
+      changed_when: false
+      when: ansible_pkg_mgr == "dnf"
+
   roles:
     - role: guidugli.chrony
