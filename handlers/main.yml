@@ -2,6 +2,7 @@
 # handlers file for chrony
 
 - name: Restart service
+  become: yes
   ansible.builtin.service:
     state: restarted
     name: "{{ chrony_service }}"
