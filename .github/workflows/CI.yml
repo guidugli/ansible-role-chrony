@@ -23,9 +23,9 @@ jobs:
       - name: Setup venv
         run: |
           python3 -m venv .venv
-          . .venv/bin/activate
-          pip install -r requirements-dev.txt
-          ansible-galaxy collection install -r requirements.yml
+         .venv/bin/python -m pip install --upgrade pip
+         .venv/bin/python -m pip install -r requirements-dev.txt
+         .venv/bin/ansible-galaxy collection install -r requirements.yml
 
       - name: Update matrix + inventories
         run: |
