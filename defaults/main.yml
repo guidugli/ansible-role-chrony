@@ -6,6 +6,12 @@
 #### COMMON SETTINGS ####
 #########################
 
+# Provide extra output
+chrony_debug: false
+
+# Should the playbook (re)start the services
+chrony_manage_service: true
+
 ## chrony_servers or chrony_pools must be present
 
 #chrony_servers:

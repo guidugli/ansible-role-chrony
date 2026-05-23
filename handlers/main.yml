@@ -3,7 +3,13 @@
 
 - name: Restart service
   become: yes
+  vars:
+    _virt_type: "{{ ansible_facts['virtualization_type'] | default('') }}"
+    _is_container: "{{ _virt_type in (_container_types | default([])) }}"
   ansible.builtin.service:
     state: restarted
     name: "{{ chrony_service }}"
-  when: ansible_virtualization_type not in _container_types
+  when:
+    - chrony_manage_service | default(true) | bool
+    - not _is_container
+  tags: [service]

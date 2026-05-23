@@ -1,28 +1,42 @@
 ---
+# Generated file. Do not edit directly.
+# Source template: meta_main.yml.j2
+# Generated on: 2026-05-22T04:11:50Z
+
 dependencies: []
 
 galaxy_info:
   role_name: chrony
+  namespace: guidugli
   author: guidugli
-  description: Install and configure chrony on linux
   company: Creuzo Tech
-  license: "license (BSD, MIT)"
-  min_ansible_version: '2.9'
+
+  description: >-
+    Install and configure Chrony NTP service on Linux distributions.
+    This role focuses on package installation and configuration management,
+    with multi-distribution support and container-friendly testability.
+
+  license: MIT
+  min_ansible_version: "2.14"
 
   platforms:
     - name: Fedora
       versions:
-        - '43'
-        - '42'
+        - "44"
+        - "43"
     - name: Ubuntu
       versions:
-        - noble
-        - jammy
+        - "resolute"
+        - "noble"
     - name: Debian
       versions:
-        - trixie
-        - bookwork
+        - "trixie"
+        - "bookworm"
 
   galaxy_tags:
     - chrony
+    - ntp
     - time
+    - time_sync
+    - linux
+    - system

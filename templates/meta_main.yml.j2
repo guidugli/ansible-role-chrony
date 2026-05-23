@@ -1,0 +1,37 @@
+---
+# Generated file. Do not edit directly.
+# Source template: {{ template_name }}
+# Generated on: {{ generated_on }}
+
+dependencies: []
+
+galaxy_info:
+  role_name: chrony
+  namespace: guidugli
+  author: guidugli
+  company: Creuzo Tech
+
+  description: >-
+    Install and configure Chrony NTP service on Linux distributions.
+    This role focuses on package installation and configuration management,
+    with multi-distribution support and container-friendly testability.
+
+  license: MIT
+  min_ansible_version: "2.14"
+
+  platforms:
+{% for platform in platforms %}
+    - name: {{ platform.name }}
+      versions:
+{% for version in platform.versions %}
+        - {{ version | tojson }}
+{% endfor %}
+{% endfor %}
+
+  galaxy_tags:
+    - chrony
+    - ntp
+    - time
+    - time_sync
+    - linux
+    - system

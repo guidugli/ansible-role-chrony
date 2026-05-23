@@ -1,0 +1,93 @@
+---
+argument_specs:
+  main:
+    short_description: Configure chrony
+    description:
+      - Validates role inputs and configures chrony.
+
+    options:
+      chrony_servers:
+        type: list
+        required: false
+        elements: str
+        description: NTP servers to use
+
+      chrony_pools:
+        type: list
+        required: false
+        elements: str
+        description: NTP pools to use
+
+      chrony_driftfile:
+        type: str
+        required: false
+        description: Path to drift file
+
+      chrony_logdir:
+        type: str
+        required: false
+        description: Chrony log directory
+
+      chrony_keyfile:
+        type: str
+        required: false
+        description: Key file path
+
+      chrony_ntsdumpdir:
+        type: str
+        required: false
+        description: NTS dump directory path
+
+      chrony_dhcp_sourcedir:
+        type: str
+        required: false
+        description: DHCP sourcedir path
+
+      chrony_allow:
+        type: list
+        required: false
+        elements: str
+
+      chrony_generic_settings:
+        type: list
+        required: false
+        description: 'List of dicts like {key: ..., value: ..., minversion: ...}'
+        elements: dict
+
+      chrony_makestep:
+        type: str
+        required: true
+
+      chrony_maxupdateskew:
+        type: float
+        required: false
+
+      chrony_enable_rtcsync:
+        type: bool
+        required: true
+
+      chrony_minsources:
+        type: int
+        required: false
+
+      chrony_local:
+        type: str
+        required: false
+
+      chrony_leapsecmode:
+        type: str
+        required: true
+        choices: [system, step, slew, ignore]
+
+      chrony_authselectmode:
+        type: str
+        required: false
+        choices: [require, prefer, mix, ignore]
+
+      chrony_leapsectz:
+        type: str
+        required: true
+
+      chrony_log:
+        type: str
+        required: false

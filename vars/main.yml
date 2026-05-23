@@ -1,14 +1,43 @@
 ---
 # vars file for chrony
 
+# Service name (can vary by distro; override if needed)
 chrony_service: chronyd
 
+# -----------------------------
+# Fact-derived selectors (future-proof)
+# INJECT_FACTS_AS_VARS will change; do not rely on ansible_distribution / ansible_distribution_major_version
+# Use ansible_facts[...] instead. [1](https://philnewm.github.io/molecule-start/)[2](https://deepwiki.com/ansible/molecule/4.1-ansible-provisioner)
+# -----------------------------
+_chrony_dist: "{{ ansible_facts['distribution'] | default('default') }}"
+_chrony_major: "{{ ansible_facts['distribution_major_version'] | default('') }}"
+_chrony_dist_key: "{{ _chrony_dist ~ '-' ~ _chrony_major if (_chrony_major | length > 0) else _chrony_dist }}"
+
+# -----------------------------
+# Package mapping
+# -----------------------------
 _chrony_packages:
-  default: ['chrony']
+  default:
+    - chrony
+  # Add distro-specific keys here if you ever need them, e.g.:
+  # Ubuntu-24: [chrony]
+  # Debian-13: [chrony]
+  # Fedora-44: [chrony]
 
-chrony_packages: "{{ _chrony_packages[ansible_distribution ~ '-' ~ ansible_distribution_major_version] |
-                 default(_chrony_packages[ansible_distribution]) | default(_chrony_packages['default']) }}"
+# Pick the best match in order:
+# 1) "<Distribution>-<Major>"  (e.g. "Ubuntu-24")
+# 2) "<Distribution>"          (e.g. "Ubuntu")
+# 3) "default"
+chrony_packages: >-
+  {{
+    _chrony_packages[_chrony_dist_key]
+      | default(_chrony_packages[_chrony_dist])
+      | default(_chrony_packages['default'])
+  }}
 
+# -----------------------------
+# /etc path mapping
+# -----------------------------
 _chrony_etc_path:
   default: /etc/chrony
   RedHat: /etc
@@ -16,11 +45,23 @@ _chrony_etc_path:
   CentOS: /etc
   Rocky: /etc
 
-chrony_etc_path: "{{ _chrony_etc_path[ansible_distribution ~ '-' ~ ansible_distribution_major_version] |
-                 default(_chrony_etc_path[ansible_distribution]) | default(_chrony_etc_path['default']) }}"
+chrony_etc_path: >-
+  {{
+    _chrony_etc_path[_chrony_dist_key]
+      | default(_chrony_etc_path[_chrony_dist])
+      | default(_chrony_etc_path['default'])
+  }}
 
+# Common runtime path
 chrony_dhcp_source_dir: "/run/chrony-dhcp"
 
-chrony_cfg_mode: '0644'
+# File mode for rendered configs
+chrony_cfg_mode: "0644"
 
-_container_types: ['docker', 'podman', 'lxc', 'containerd', 'container']
+# Container virtualization types to skip service management
+_container_types:
+  - docker
+  - podman
+  - lxc
+  - containerd
+  - container

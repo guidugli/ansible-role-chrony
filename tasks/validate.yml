@@ -1,0 +1,25 @@
+---
+- name: Validate role inputs (explicit, only public vars)
+  ansible.builtin.validate_argument_spec:
+    argument_spec: "{{ _chrony_spec }}"
+    provided_arguments:
+      chrony_allow: "{{ chrony_allow | default(omit) }}"
+      chrony_authselectmode: "{{ chrony_authselectmode | default(omit) }}"
+      chrony_dhcp_sourcedir: "{{ chrony_dhcp_sourcedir | default(omit) }}"
+      chrony_driftfile: "{{ chrony_driftfile | default(omit) }}"
+      chrony_enable_rtcsync: "{{ chrony_enable_rtcsync | default(omit) }}"
+      chrony_generic_settings: "{{ chrony_generic_settings | default(omit) }}"
+      chrony_keyfile: "{{ chrony_keyfile | default(omit) }}"
+      chrony_leapsecmode: "{{ chrony_leapsecmode | default(omit) }}"
+      chrony_leapsectz: "{{ chrony_leapsectz | default(omit) }}"
+      chrony_local: "{{ chrony_local | default(omit) }}"
+      chrony_log: "{{ chrony_log | default(omit) }}"
+      chrony_logdir: "{{ chrony_logdir | default(omit) }}"
+      chrony_makestep: "{{ chrony_makestep | default(omit) }}"
+      chrony_maxupdateskew: "{{ chrony_maxupdateskew | default(omit) }}"
+      chrony_minsources: "{{ chrony_minsources | default(omit) }}"
+      chrony_ntsdumpdir: "{{ chrony_ntsdumpdir | default(omit) }}"
+      chrony_pools: "{{ chrony_pools | default(omit) }}"
+      chrony_servers: "{{ chrony_servers | default(omit) }}"
+  vars:
+    _chrony_spec: "{{ (lookup('ansible.builtin.file', role_path ~ '/meta/argument_specs.yml') | from_yaml).argument_specs.main.options }}"

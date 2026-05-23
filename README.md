@@ -1,162 +1,578 @@
-Ansible Role: chrony
-=========
+# Ansible Role: `chrony`
 
-An Ansible Role that install and configure chrony on RHEL/CentOS, Fedora and Debian/Ubuntu.
+Install and configure **Chrony** on Linux distributions.
 
-Requirements
-------------
+This role is designed for:
 
-Operating system running on bare metal or on a hypervisor virtualization. Crony should not be set on containers.
+- package installation
+- configuration management
+- multi-distribution support across Ubuntu, Debian, and Fedora
+- container-friendly testing (configuration-focused, not runtime-timekeeping validation)
 
-Role Variables
---------------
+> **Important:** Chrony itself is not meaningfully testable as a running time service inside standard containers because it depends on system/kernel time facilities. For this reason, the primary Molecule scenario for this role is the **default** scenario, which validates installation, rendering, and idempotency.
 
-**Available variables are listed below, along with default values (see defaults/main.yml):**
+---
 
-    #chrony_servers:
-    #  - 2.fedora.pool.ntp.org iburst
+## What the role does
 
-Specify individual servers to sync time. At least one server or pool must be informed.
+The role performs the following high-level steps:
 
-    # Use public servers from the pool.ntp.org project.
-    # Please consider joining the pool (https://www.pool.ntp.org/join.html).
-    #chrony_pools:
-    #  - pool.ntp.org          iburst maxsources 4
-    #  - ntp.ubuntu.com        iburst maxsources 4
-    #  - 0.ubuntu.pool.ntp.org iburst maxsources 1
-    #  - 1.ubuntu.pool.ntp.org iburst maxsources 1
-    #  - 2.ubuntu.pool.ntp.org iburst maxsources 2
+1. Validates public inputs using `meta/argument_specs.yml` and additional cross-field checks in `tasks/validate_extra.yml`.
+2. Refreshes the APT cache on Debian/Ubuntu hosts before installation.
+3. Installs the Chrony package using the OS-native package manager.
+4. Detects the target Chrony configuration layout:
+   - classic single-file layout
+   - `conf.d` layout
+   - `sources.d` layout
+5. Renders the main Chrony configuration and any supported drop-in files.
+6. Optionally manages the Chrony service.
 
-Specify pool of servers to sync time. At least one server or pool must be informed.
+The role currently auto-detects container virtualization and skips service management in container contexts when appropriate.
 
-    #chrony_sourcedir:
-    #  - /run/chrony-dhcp
+---
 
-Use NTP servers from DHCP.
-The sourcedir directive includes configuration files with the .sources suffix from a directory. They can only specify NTP sources i.e. use the server, pool, and peer directive), and can be reloaded by the reload sources command in chronyc. It is particularly useful with dynamic sources like NTP servers received from a DHCP server, which can be written to a file specific to the network interface by a networking script.
+## Requirements
 
-    chrony_driftfile: /var/lib/chrony/drift
+- Ansible **2.14** or newer
+- Supported operating systems are generated at release time from the Molecule matrix in `molecule/shared/vars.yml`
 
-Where to store the file that records the rate at which the system clock gains/losses time.
+---
 
+## Supported platforms
 
-    chrony_makestep: 1.0 3
+The `meta/main.yml` file is generated from the platform matrix stored in:
 
-Allow the system clock to be stepped in the first three updates if its offset is larger than 1 second. This directive forces chronyd to step the system clock if the adjustment is larger than a threshold value, but only if there were no more clock updates since chronyd was started than a specified limit (a negative value can be used to disable the limit).
-This is particularly useful when using reference clocks, because the initstepslew directive works only with NTP sources.
-chrony_makestep: threshold limit
+```yaml
+molecule/shared/vars.yml
+```
 
-    #chrony_maxupdateskew: 100.0
+That file is the **source of truth** for:
 
-Stop bad estimates upsetting machine clock. The maxupdateskew directive sets the threshold for determining whether an estimate might be so unreliable that it should not be used. By default, the threshold is 1000 ppm. Typical values for skew-in-ppm might be 100 for a dial-up connection to servers over a phone line, and 5 or 10 for a computer on a LAN.
+- Molecule inventory generation
+- tested OS matrix
+- generated Galaxy metadata (`meta/main.yml`)
 
-    chrony_enable_rtcsync: true
+---
 
-Enable kernel synchronization of the real-time clock (RTC). The rtcsync directive enables a mode where the system time is periodically copied to the RTC and chronyd does not try to track its drift. This directive cannot be used with the rtcfile directive. On Linux, the RTC copy is performed by the kernel every 11 minutes.
+## Public role variables
 
-    # chrony_hwtimestamp: *
+The sections below are derived from the role defaults, comments, and validation rules.
 
-Enable hardware timestamping on all interfaces that support it.
+### Required source configuration
 
-    # chrony_minsources: 2
+At least one of the following must be provided with **one or more entries**:
 
-Increase the minimum number of selectable sources required to adjust the system clock. The default value is 1.
+```yaml
+chrony_servers:
+  - 2.fedora.pool.ntp.org iburst
+```
 
-    #chrony_allow:
-    #  - 192.168.0.0/16
+or
 
-Allow NTP client access from local network. The default is that no clients are allowed access.
+```yaml
+chrony_pools:
+  - pool.ntp.org          iburst maxsources 4
+  - ntp.ubuntu.com        iburst maxsources 4
+  - 0.ubuntu.pool.ntp.org iburst maxsources 1
+  - 1.ubuntu.pool.ntp.org iburst maxsources 1
+  - 2.ubuntu.pool.ntp.org iburst maxsources 2
+```
 
-    #chrony_local: stratum 10
+Validation rules enforce that at least one of `chrony_servers` or `chrony_pools` is provided.
 
-Serve time even if not synchronized to a time source.
-This directive is normally used in an isolated network, where computers are required to be synchronised to one another, but not necessarily to real time. The server can be kept vaguely in line with real time by manual input.
-Local directive has the following options:
-  - stratum <stratum>: sets the stratum of the server
-  - distance <distance>
-  - orphan: enables a special ‘orphan’ mode, where sources with stratum equal to the local stratum are assumed to not serve real time.
+---
 
-.
+### Common settings from `defaults/main.yml`
 
-    #chrony_authselectmode: require
+#### `chrony_debug`
 
-Require authentication (nts or key option) for all NTP sources. Valid values: require, prefer, mix or ignore
+Enable additional debug output.
 
-    chrony_keyfile: "{{ chrony_etc_path }}/chrony.keys"
+```yaml
+chrony_debug: false
+```
 
-Specify file containing keys for NTP authentication.
+#### `chrony_manage_service`
 
-    #chrony_ntsdumpdir: /var/lib/chrony
+Controls whether the role attempts to manage the Chrony service.
 
-Save NTS keys and cookies. Only available on chrony version 4.
+```yaml
+chrony_manage_service: true
+```
 
-    #chrony_leapsecmode: slew
+> In container environments, the role may still skip service management automatically.
 
-Insert/delete leap seconds by slewing instead of stepping. Valid values: system, step, slew or ignore.
+#### `chrony_dhcp_sourcedir`
 
-    #chrony_leapsectz: right/UTC
+Directory used for DHCP-provided Chrony source files.
 
-Get TAI-UTC offset and leap seconds from the system tz database.
+```yaml
+chrony_dhcp_sourcedir: /run/chrony-dhcp
+```
 
-    chrony_logdir: /var/log/chrony
+#### `chrony_driftfile`
 
-Specify directory for log files.
+Path to the Chrony drift file.
 
-    #chrony_log: measurements statistics tracking
+```yaml
+chrony_driftfile: /var/lib/chrony/drift
+```
 
-Select which information is logged
+#### `chrony_makestep`
 
-**The variables listed below do not need to be changed for targeted systems (see vars/main.yml):**
+Controls when Chrony is allowed to step the system clock.
 
-    chrony_service: chronyd
+```yaml
+chrony_makestep: 1.0 3
+```
 
-Chrony service name.
+Expected format:
 
-    chrony_packages:
+```text
+<threshold> <limit>
+```
 
-Packages to be installed to provide chrony functionality.
+Examples:
 
-    chrony_cfg_mode: '0644'
+```yaml
+chrony_makestep: 1.0 3
+chrony_makestep: 0.5 5
+```
 
-Desired configuration files permission.
+#### `chrony_maxupdateskew`
 
-Dependencies
-------------
+Maximum allowed clock skew estimate.
 
-No dependencies.
+```yaml
+chrony_maxupdateskew: 100.0
+```
 
-Example Playbook
-----------------
+#### `chrony_enable_rtcsync`
 
-    - hosts: servers
+Enable kernel synchronization of the hardware RTC.
+
+```yaml
+chrony_enable_rtcsync: true
+```
+
+#### `chrony_keyfile`
+
+Path to the Chrony keys file.
+
+```yaml
+chrony_keyfile: "{{ chrony_etc_path }}/chrony.keys"
+```
+
+#### `chrony_ntsdumpdir`
+
+Directory used to persist NTS keys and cookies.
+
+```yaml
+chrony_ntsdumpdir: /var/lib/chrony
+```
+
+#### `chrony_leapsecmode`
+
+How leap seconds should be handled.
+
+```yaml
+chrony_leapsecmode: slew
+```
+
+Allowed values:
+
+- `system`
+- `step`
+- `slew`
+- `ignore`
+
+#### `chrony_leapsectz`
+
+Timezone database source for TAI-UTC offset / leap second information.
+
+```yaml
+chrony_leapsectz: right/UTC
+```
+
+#### `chrony_logdir`
+
+Directory where Chrony logs should be written.
+
+```yaml
+chrony_logdir: /var/log/chrony
+```
+
+---
+
+### Optional variables documented in `defaults/main.yml` comments
+
+These options are supported by the templates and validation logic when defined.
+
+#### `chrony_sourcedir`
+
+Optional sourcedir directives for additional NTP source files.
+
+Example:
+
+```yaml
+chrony_sourcedir:
+  - /run/chrony-dhcp
+```
+
+> Note: the role defaults define `chrony_dhcp_sourcedir`, while the templates also reference `chrony_sourcedir`. If you plan to use `chrony_sourcedir` explicitly, keep the distinction in mind.
+
+#### `chrony_hwtimestamp`
+
+Enable hardware timestamping on compatible interfaces.
+
+Example:
+
+```yaml
+chrony_hwtimestamp: "*"
+```
+
+#### `chrony_minsources`
+
+Increase the minimum number of selectable sources required to adjust the clock.
+
+Example:
+
+```yaml
+chrony_minsources: 2
+```
+
+#### `chrony_allow`
+
+Allow NTP client access from selected networks.
+
+Example:
+
+```yaml
+chrony_allow:
+  - 192.168.0.0/16
+```
+
+#### `chrony_local`
+
+Serve time even if not synchronized to an external source.
+
+Example:
+
+```yaml
+chrony_local: stratum 10
+```
+
+#### `chrony_authselectmode`
+
+Require authentication for all NTP sources.
+
+Allowed values:
+
+- `require`
+- `prefer`
+- `mix`
+- `ignore`
+
+Example:
+
+```yaml
+chrony_authselectmode: require
+```
+
+#### `chrony_log`
+
+Select which Chrony information should be logged.
+
+Example:
+
+```yaml
+chrony_log: measurements statistics tracking
+```
+
+#### `chrony_generic_settings`
+
+Generic escape hatch for supported directives that do not have dedicated variables.
+
+Examples:
+
+```yaml
+chrony_generic_settings:
+  - { key: manual }
+  - { key: bindacqdevice, value: eth0, minversion: 0 }
+  - { key: hwclockfile, value: /etc/adjtime }
+```
+
+Rules:
+
+- `key` is required
+- `value` is optional
+- `minversion` is optional
+- when `minversion` is defined, the directive is rendered only when the detected Chrony version is equal to or greater than that version
+
+---
+
+## Internal role variables (`vars/main.yml`)
+
+These values are selected automatically and normally should **not** be overridden unless you have a very specific need.
+
+### `chrony_service`
+
+Internal service name used by the role.
+
+```yaml
+chrony_service: chronyd
+```
+
+### `chrony_packages`
+
+OS-aware package mapping selected from `_chrony_packages`.
+
+Current default mapping:
+
+```yaml
+_chrony_packages:
+  default:
+    - chrony
+```
+
+The role resolves package names in this order:
+
+1. `<Distribution>-<Major>`
+2. `<Distribution>`
+3. `default`
+
+### `chrony_etc_path`
+
+OS-aware Chrony configuration base path selected from `_chrony_etc_path`.
+
+Current mapping:
+
+```yaml
+_chrony_etc_path:
+  default: /etc/chrony
+  RedHat: /etc
+  Fedora: /etc
+  CentOS: /etc
+  Rocky: /etc
+```
+
+### `chrony_dhcp_source_dir`
+
+Internal runtime path for DHCP source files.
+
+```yaml
+chrony_dhcp_source_dir: "/run/chrony-dhcp"
+```
+
+### `chrony_cfg_mode`
+
+File mode used for rendered configuration files.
+
+```yaml
+chrony_cfg_mode: "0644"
+```
+
+### `_container_types`
+
+Container virtualization types used to decide whether service management should be skipped.
+
+```yaml
+_container_types:
+  - docker
+  - podman
+  - lxc
+  - containerd
+  - container
+```
+
+---
+
+## Validation behavior
+
+The role validates inputs in two layers:
+
+### 1. `meta/argument_specs.yml`
+Provides type validation and choices for public variables such as:
+
+- `chrony_servers`
+- `chrony_pools`
+- `chrony_driftfile`
+- `chrony_logdir`
+- `chrony_keyfile`
+- `chrony_ntsdumpdir`
+- `chrony_dhcp_sourcedir`
+- `chrony_allow`
+- `chrony_generic_settings`
+- `chrony_makestep`
+- `chrony_maxupdateskew`
+- `chrony_enable_rtcsync`
+- `chrony_minsources`
+- `chrony_local`
+- `chrony_leapsecmode`
+- `chrony_authselectmode`
+- `chrony_leapsectz`
+- `chrony_log`
+
+### 2. `tasks/validate_extra.yml`
+Adds checks that are awkward to express in argument specs, including:
+
+- requiring at least one of `chrony_servers` or `chrony_pools`
+- validating `chrony_makestep` format
+- validating path-like variables with a regex
+
+---
+
+## Example playbooks
+
+### Basic example using pools
+
+```yaml
+- name: Configure Chrony
+  hosts: all
+  become: true
+  roles:
+    - role: guidugli.chrony
       vars:
         chrony_pools:
-          - pool.ntp.org          iburst maxsources 4
-          - ntp.ubuntu.com        iburst maxsources 4
-          - 0.ubuntu.pool.ntp.org iburst maxsources 1
-          - 1.ubuntu.pool.ntp.org iburst maxsources 1
-          - 2.ubuntu.pool.ntp.org iburst maxsources 2
-        chrony_driftfile: /var/lib/chrony/drift
-        chrony_makestep: 1.0 3
-        chrony_maxupdateskew: 100.0
-        chrony_enable_rtcsync: true
-        chrony_minsources: 2
-        chrony_allow:
-          - 192.168.0.0/16
-        chrony_local: stratum 10
-        chrony_keyfile: "{{ chrony_etc_path }}/chrony.keys"
-        chrony_leapsecmode: slew
-        chrony_logdir: /var/log/chrony
-        chrony_log: measurements statistics tracking
-      roles:
-         - { role: guidugli.chrony }
+          - pool.ntp.org iburst maxsources 4
+```
 
-License
--------
+### Example using explicit servers and disabling service management
 
-MIT / BSD
+```yaml
+- name: Configure Chrony without managing the service
+  hosts: all
+  become: true
+  roles:
+    - role: guidugli.chrony
+      vars:
+        chrony_manage_service: false
+        chrony_servers:
+          - time.google.com iburst
+          - time.cloudflare.com iburst
+```
 
-Author Information
-------------------
+### Example with additional generic directives
 
-This role was created in 2020 by Carlos Guidugli.
+```yaml
+- name: Configure Chrony with extra directives
+  hosts: all
+  become: true
+  roles:
+    - role: guidugli.chrony
+      vars:
+        chrony_pools:
+          - pool.ntp.org iburst maxsources 4
+        chrony_generic_settings:
+          - key: manual
+          - key: hwclockfile
+            value: /etc/adjtime
+```
+
+---
+
+## Templates and layout behavior
+
+The role supports more than one Chrony layout.
+
+It will automatically detect whether the target system supports:
+
+- `chrony.conf` only
+- `conf.d`
+- `sources.d`
+
+Then it renders the appropriate files:
+
+- main config: `chrony.conf` or `chrony_with_conf_d.conf`
+- `conf.d/01-ansible.conf` when `conf.d` exists
+- `sources.d/01-ansible.sources` when `sources.d` exists
+
+---
+
+## Testing
+
+This role uses **Molecule with Podman**.
+
+### Primary scenario: `default`
+
+```bash
+molecule test -s default
+```
+
+This is the recommended test scenario for this role.
+
+It validates:
+
+- package installation
+- configuration rendering
+- idempotency
+
+### Optional scenario: `systemd`
+
+A `systemd` scenario exists in the repo, but it is optional for this role.
+
+Because Chrony is not meaningfully runtime-testable inside regular containers, the **default** scenario is the authoritative one for release validation.
+
+---
+
+## Release metadata workflow
+
+This repo uses a generated metadata approach.
+
+### Source of truth
+
+```text
+molecule/shared/vars.yml
+```
+
+This file drives:
+
+- tested platform matrix
+- Molecule inventories
+- generated `meta/main.yml`
+
+### Refresh matrix and regenerate metadata
+
+```bash
+./scripts/update_release_metadata.sh
+```
+
+That script:
+
+1. runs `scripts/update_matrix.py`
+2. refreshes `molecule/shared/vars.yml`
+3. regenerates Molecule inventories
+4. renders `meta/main.yml` from `templates/meta_main.yml.j2`
+
+### Recommended pre-release checks
+
+```bash
+git diff -- meta/main.yml molecule/
+molecule test -s default
+```
+
+> `meta/main.yml` is generated. Do **not** edit it manually.
+
+---
+
+## Design principles
+
+This role follows these principles:
+
+- single source of truth for the platform matrix
+- container-friendly test approach
+- configuration-first validation
+- minimal complexity where systemd adds no real value
+- release-time metadata generation instead of manual drift
+
+---
+
+## License
+
+MIT
+
+---
+
+## Author
+
+Carlos Guidugli (`guidugli`)

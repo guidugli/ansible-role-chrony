@@ -1,0 +1,46 @@
+---
+# tasks/validate_extra.yml
+#
+# Purpose:
+#   Extra validation that is awkward or not possible to express in role argument_specs.yml:
+#     - Cross-field rule (must provide chrony_servers OR chrony_pools and non-empty)
+#     - Regex format validation (chrony_makestep)
+#     - Regex validation for path-like variables
+#
+# Notes:
+#   - Use ansible.builtin.assert for clear failure messages (fail_msg) and quiet mode. [1](https://fedorapeople.org/groups/schedule/)
+
+- name: Validate that at least one source list is provided and non-empty
+  ansible.builtin.assert:
+    that:
+      - (chrony_servers | default([]) | length > 0) or (chrony_pools | default([]) | length > 0)
+    fail_msg: "You must set chrony_servers or chrony_pools with at least one entry."
+    quiet: true
+
+- name: Validate chrony_makestep format (regex)
+  ansible.builtin.assert:
+    that:
+      - chrony_makestep is regex('^\d+(\.\d+)?\s+\d+$')
+    fail_msg: "chrony_makestep must be like '1.0 3' or '1 3'. Got: {{ chrony_makestep }}"
+    quiet: true
+
+- name: Validate path variables (regex)
+  vars:
+    # Accepts:
+    #   "/" OR "/segment/segment" (optional trailing slash)
+    pathre: '^(?:[\/])$|^(?:[\/][a-zA-Z0-9_.-]+)+[\/]?$'
+  ansible.builtin.assert:
+    that:
+      - item.value is string
+      - item.value is regex(pathre)
+    quiet: true
+    fail_msg: >-
+      {{ item.key }} must be a valid path matching {{ pathre }}.
+      Got: {{ item.value }}
+  loop:
+    - { key: chrony_driftfile,      value: "{{ chrony_driftfile      | default(none) }}" }
+    - { key: chrony_logdir,         value: "{{ chrony_logdir         | default(none) }}" }
+    - { key: chrony_keyfile,        value: "{{ chrony_keyfile        | default(none) }}" }
+    - { key: chrony_ntsdumpdir,     value: "{{ chrony_ntsdumpdir     | default(none) }}" }
+    - { key: chrony_dhcp_sourcedir, value: "{{ chrony_dhcp_sourcedir | default(none) }}" }
+  when: item.value is not none
