@@ -3,13 +3,13 @@
 # Purpose: Validate inputs, install chrony, render configuration, and (optionally) manage service.
 
 - name: Validate role inputs
+  tags: [validate]
   block:
     - name: Include validate.yml (optional extra validations)
       ansible.builtin.import_tasks: validate.yml
 
     - name: Include validate_extra.yml (regex & cross-field rules)
       ansible.builtin.import_tasks: validate_extra.yml
-  tags: [validate]
 
 # ---- Package cache management (APT only) ----
 # On Debian/Ubuntu, package installs may fail if apt cache is stale or missing.
@@ -68,6 +68,7 @@
 
 # ---- Config layout detection ----
 - name: Check config layout directories
+  tags: [config]
   block:
     - name: Check if conf.d directory exists
       ansible.builtin.stat:
@@ -84,7 +85,6 @@
         chrony_conf_dir_exists: "{{ ch_conf_d.stat.exists | default(false) and ch_conf_d.stat.isdir | default(false) }}"
         chrony_sources_dir_exists: "{{ ch_sources_d.stat.exists | default(false) and ch_sources_d.stat.isdir |
           default(false) }}"
-  tags: [config]
 
 - name: Debug layout flags (optional)
   ansible.builtin.debug:

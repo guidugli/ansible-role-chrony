@@ -39,9 +39,9 @@
       {{ item.key }} must be a valid path matching {{ pathre }}.
       Got: {{ item.value }}
   loop:
-    - { key: chrony_driftfile, value: "{{ chrony_driftfile      | default(none) }}" }
-    - { key: chrony_logdir, value: "{{ chrony_logdir         | default(none) }}" }
-    - { key: chrony_keyfile, value: "{{ chrony_keyfile        | default(none) }}" }
-    - { key: chrony_ntsdumpdir, value: "{{ chrony_ntsdumpdir     | default(none) }}" }
+    - { key: chrony_driftfile, value: "{{ chrony_driftfile | default(none) }}" }
+    - { key: chrony_logdir, value: "{{ chrony_logdir | default(none) }}" }
+    - { key: chrony_keyfile, value: "{{ chrony_keyfile | default(none) }}" }
+    - { key: chrony_ntsdumpdir, value: "{{ chrony_ntsdumpdir | default(none) }}" }
     - { key: chrony_dhcp_sourcedir, value: "{{ chrony_dhcp_sourcedir | default(none) }}" }
   when: item.value is not none

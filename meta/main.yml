@@ -5,12 +5,13 @@
 dependencies: []
 
 galaxy_info:
-  role_name: auto_update
+  role_name: chrony
   namespace: guidugli
   author: guidugli
   description: >-
-    Install and configure automatic package update tooling on Debian, Ubuntu,
-    and Fedora systems.
+    Install and configure Chrony NTP service on Linux distributions
+    This role focuses on package installation and configuration management,
+    with multi-distribution support and container-friendly testability.
   license: MIT
   min_ansible_version: '2.14'
   platforms:
@@ -26,12 +27,6 @@ galaxy_info:
         - "trixie"
         - "bullseye"
   galaxy_tags:
-    - updates
-    - automatic
-    - patching
-    - security
-    - unattended
-    - apt
-    - dnf
-    - linux
-    - maintenance
+    - chrony
+    - ntp
+    - time

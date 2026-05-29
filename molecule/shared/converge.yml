@@ -35,4 +35,4 @@
         var: ansible_facts['pkg_mgr']
 
   roles:
-    - role: guidugli.chrony
+    - role: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
