@@ -22,4 +22,5 @@
       chrony_pools: "{{ chrony_pools | default(omit) }}"
       chrony_servers: "{{ chrony_servers | default(omit) }}"
   vars:
-    _chrony_spec: "{{ (lookup('ansible.builtin.file', role_path ~ '/meta/argument_specs.yml') | from_yaml).argument_specs.main.options }}"
+    _chrony_spec: "{{ (lookup('ansible.builtin.file', role_path ~ '/meta/argument_specs.yml') |
+      from_yaml).argument_specs.main.options }}"

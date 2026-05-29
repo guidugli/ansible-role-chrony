@@ -7,7 +7,9 @@ chrony_service: chronyd
 # -----------------------------
 # Fact-derived selectors (future-proof)
 # INJECT_FACTS_AS_VARS will change; do not rely on ansible_distribution / ansible_distribution_major_version
-# Use ansible_facts[...] instead. [1](https://philnewm.github.io/molecule-start/)[2](https://deepwiki.com/ansible/molecule/4.1-ansible-provisioner)
+# Use ansible_facts[...] instead.
+# [1](https://philnewm.github.io/molecule-start/)
+# [2](https://deepwiki.com/ansible/molecule/4.1-ansible-provisioner)
 # -----------------------------
 _chrony_dist: "{{ ansible_facts['distribution'] | default('default') }}"
 _chrony_major: "{{ ansible_facts['distribution_major_version'] | default('') }}"

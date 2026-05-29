@@ -575,4 +575,4 @@ MIT
 
 ## Author
 
-Carlos Guidugli (`guidugli`)
+Carlos Guidugli

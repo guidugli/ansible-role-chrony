@@ -26,8 +26,8 @@ ansible:
     create: create.yml
     destroy: destroy.yml
     prepare: prepare.yml
-    converge: converge.yml
-    verify: verify.yml
+    converge: ../shared/converge.yml
+    verify: ../shared/verify.yml
 
 scenario:
   name: default

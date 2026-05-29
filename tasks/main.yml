@@ -13,7 +13,8 @@
 
 # ---- Package cache management (APT only) ----
 # On Debian/Ubuntu, package installs may fail if apt cache is stale or missing.
-# Use ansible.builtin.apt update_cache + cache_valid_time for efficient, idempotent refresh. [1](https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/apt_module.html)
+# Use ansible.builtin.apt update_cache + cache_valid_time for efficient, idempotent refresh.
+# [1](https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/apt_module.html)
 - name: Update apt package cache (Debian/Ubuntu)
   ansible.builtin.apt:
     update_cache: true
@@ -59,7 +60,8 @@
     msg:
       - "Package name: {{ _chrony_pkg_name }}"
       - "Major version: {{ chrony_major_version | default('unknown') }}"
-      - "Version string: {{ (ansible_facts.packages[_chrony_pkg_name][0].version if (_chrony_pkg_name in ansible_facts.packages) else 'unknown') }}"
+      - "Version string: {{ (ansible_facts.packages[_chrony_pkg_name][0].version
+        if (_chrony_pkg_name in ansible_facts.packages) else 'unknown') }}"
   when: chrony_debug | default(false) | bool
   changed_when: false
   tags: [debug]
@@ -80,7 +82,8 @@
     - name: Set layout flags
       ansible.builtin.set_fact:
         chrony_conf_dir_exists: "{{ ch_conf_d.stat.exists | default(false) and ch_conf_d.stat.isdir | default(false) }}"
-        chrony_sources_dir_exists: "{{ ch_sources_d.stat.exists | default(false) and ch_sources_d.stat.isdir | default(false) }}"
+        chrony_sources_dir_exists: "{{ ch_sources_d.stat.exists | default(false) and ch_sources_d.stat.isdir |
+          default(false) }}"
   tags: [config]
 
 - name: Debug layout flags (optional)
