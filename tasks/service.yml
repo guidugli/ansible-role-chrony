@@ -1,11 +1,12 @@
 ---
-- name: Restart Chrony service
+- name: Start and enable the Chrony service
   vars:
     chrony_is_container: >-
       {{ ansible_facts['virtualization_type'] | default('') in chrony_container_types }}
   ansible.builtin.service:
     name: "{{ chrony_service }}"
-    state: restarted
+    state: started
+    enabled: true
   when:
     - chrony_manage_service | bool
     - not chrony_is_container

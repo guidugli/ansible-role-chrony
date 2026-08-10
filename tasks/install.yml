@@ -1,0 +1,16 @@
+---
+- name: Refresh the apt package cache
+  ansible.builtin.apt:
+    update_cache: true
+  when: ansible_facts['pkg_mgr'] | default('') == 'apt'
+  tags:
+    - chrony
+    - install
+
+- name: Install Chrony packages
+  ansible.builtin.package:
+    name: "{{ chrony_packages }}"
+    state: present
+  tags:
+    - chrony
+    - install

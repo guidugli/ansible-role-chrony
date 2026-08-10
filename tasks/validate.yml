@@ -1,26 +1,54 @@
 ---
-- name: Validate role inputs (explicit, only public vars)
+- name: Validate public role arguments
   ansible.builtin.validate_argument_spec:
-    argument_spec: "{{ _chrony_spec }}"
-    provided_arguments:
-      chrony_allow: "{{ chrony_allow | default(omit) }}"
-      chrony_authselectmode: "{{ chrony_authselectmode | default(omit) }}"
-      chrony_dhcp_sourcedir: "{{ chrony_dhcp_sourcedir | default(omit) }}"
-      chrony_driftfile: "{{ chrony_driftfile | default(omit) }}"
-      chrony_enable_rtcsync: "{{ chrony_enable_rtcsync | default(omit) }}"
-      chrony_generic_settings: "{{ chrony_generic_settings | default(omit) }}"
-      chrony_keyfile: "{{ chrony_keyfile | default(omit) }}"
-      chrony_leapsecmode: "{{ chrony_leapsecmode | default(omit) }}"
-      chrony_leapsectz: "{{ chrony_leapsectz | default(omit) }}"
-      chrony_local: "{{ chrony_local | default(omit) }}"
-      chrony_log: "{{ chrony_log | default(omit) }}"
-      chrony_logdir: "{{ chrony_logdir | default(omit) }}"
-      chrony_makestep: "{{ chrony_makestep | default(omit) }}"
-      chrony_maxupdateskew: "{{ chrony_maxupdateskew | default(omit) }}"
-      chrony_minsources: "{{ chrony_minsources | default(omit) }}"
-      chrony_ntsdumpdir: "{{ chrony_ntsdumpdir | default(omit) }}"
-      chrony_pools: "{{ chrony_pools | default(omit) }}"
-      chrony_servers: "{{ chrony_servers | default(omit) }}"
+    argument_spec: >-
+      {{ (lookup('file', role_path + '/meta/argument_specs.yml')
+         | from_yaml).argument_specs.main.options }}
+  tags:
+    - chrony
+    - validate
+
+- name: Require at least one Chrony time source
+  ansible.builtin.assert:
+    that:
+      - chrony_servers | length > 0 or chrony_pools | length > 0
+    fail_msg: Set a non-empty chrony_servers or chrony_pools list.
+    quiet: true
+  tags:
+    - chrony
+    - validate
+
+- name: Validate Chrony makestep syntax
+  ansible.builtin.assert:
+    that:
+      - chrony_makestep is regex('^[0-9]+(?:\.[0-9]+)?[ ]+-?[0-9]+$')
+    fail_msg: chrony_makestep must contain a threshold and limit, for example '1.0 3'.
+    quiet: true
+  tags:
+    - chrony
+    - validate
+
+- name: Validate Chrony path variables
   vars:
-    _chrony_spec: "{{ (lookup('ansible.builtin.file', role_path ~ '/meta/argument_specs.yml') |
-      from_yaml).argument_specs.main.options }}"
+    chrony_path_pattern: '^/(?:[^/]+/?)*$'
+  ansible.builtin.assert:
+    that:
+      - item.value is regex(chrony_path_pattern)
+    fail_msg: "{{ item.name }} must be an absolute path."
+    quiet: true
+  loop:
+    - name: chrony_dhcp_sourcedir
+      value: "{{ chrony_dhcp_sourcedir }}"
+    - name: chrony_driftfile
+      value: "{{ chrony_driftfile }}"
+    - name: chrony_keyfile
+      value: "{{ chrony_keyfile }}"
+    - name: chrony_logdir
+      value: "{{ chrony_logdir }}"
+    - name: chrony_ntsdumpdir
+      value: "{{ chrony_ntsdumpdir }}"
+  loop_control:
+    label: "{{ item.name }}"
+  tags:
+    - chrony
+    - validate

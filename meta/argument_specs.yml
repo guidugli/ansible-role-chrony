@@ -1,93 +1,102 @@
 ---
 argument_specs:
   main:
-    short_description: Configure chrony
+    short_description: Install and configure Chrony
     description:
-      - Validates role inputs and configures chrony.
-
+      - Installs Chrony, validates configuration inputs, renders configuration, and optionally manages the service.
     options:
+      chrony_debug:
+        type: bool
+        default: false
+        description: Display detected package and configuration layout details.
+      chrony_manage_service:
+        type: bool
+        default: true
+        description: Start, enable, and restart Chrony outside detected containers.
       chrony_servers:
         type: list
-        required: false
         elements: str
-        description: NTP servers to use
-
+        default: []
+        description: Chrony server directives without the leading server keyword.
       chrony_pools:
         type: list
-        required: false
         elements: str
-        description: NTP pools to use
-
-      chrony_driftfile:
-        type: str
-        required: false
-        description: Path to drift file
-
-      chrony_logdir:
-        type: str
-        required: false
-        description: Chrony log directory
-
-      chrony_keyfile:
-        type: str
-        required: false
-        description: Key file path
-
-      chrony_ntsdumpdir:
-        type: str
-        required: false
-        description: NTS dump directory path
-
+        default: []
+        description: Chrony pool directives without the leading pool keyword.
+      chrony_sourcedir:
+        type: list
+        elements: str
+        default: []
+        description: Additional directories containing Chrony source files.
       chrony_dhcp_sourcedir:
         type: str
-        required: false
-        description: DHCP sourcedir path
-
-      chrony_allow:
-        type: list
-        required: false
-        elements: str
-
-      chrony_generic_settings:
-        type: list
-        required: false
-        description: 'List of dicts like {key: ..., value: ..., minversion: ...}'
-        elements: dict
-
+        default: /run/chrony-dhcp
+        description: Directory containing DHCP-provided Chrony sources.
+      chrony_driftfile:
+        type: str
+        default: /var/lib/chrony/drift
+        description: Path to the Chrony frequency drift file.
       chrony_makestep:
         type: str
-        required: true
-
+        default: "1.0 3"
+        description: Threshold and update limit for stepping the system clock.
       chrony_maxupdateskew:
         type: float
-        required: false
-
+        default: 100.0
+        description: Maximum accepted update skew in parts per million.
       chrony_enable_rtcsync:
         type: bool
-        required: true
-
-      chrony_minsources:
-        type: int
-        required: false
-
-      chrony_local:
+        default: true
+        description: Enable periodic synchronization of the real-time clock.
+      chrony_keyfile:
         type: str
-        required: false
-
+        default: "{{ chrony_etc_path }}/chrony.keys"
+        description: Path to the Chrony authentication key file.
+      chrony_ntsdumpdir:
+        type: str
+        default: /var/lib/chrony
+        description: Directory used to persist Network Time Security data.
       chrony_leapsecmode:
         type: str
-        required: true
         choices: [system, step, slew, ignore]
-
-      chrony_authselectmode:
-        type: str
-        required: false
-        choices: [require, prefer, mix, ignore]
-
+        default: slew
+        description: Leap-second correction mode.
       chrony_leapsectz:
         type: str
-        required: true
-
+        default: right/UTC
+        description: Time zone database used to obtain leap-second information.
+      chrony_logdir:
+        type: str
+        default: /var/log/chrony
+        description: Directory for Chrony log files.
+      chrony_hwtimestamp:
+        type: str
+        default: ""
+        description: Interface or directive arguments for hardware timestamping; empty disables it.
+      chrony_minsources:
+        type: int
+        default: 0
+        description: Minimum selectable time sources required before clock updates; zero omits the directive.
+      chrony_allow:
+        type: list
+        elements: str
+        default: []
+        description: Network prefixes allowed to query this host as an NTP server.
+      chrony_local:
+        type: str
+        default: ""
+        description: Arguments for the local directive; empty disables local reference mode.
+      chrony_authselectmode:
+        type: str
+        choices: ["", require, prefer, mix, ignore]
+        default: ""
+        description: Authentication preference for source selection; empty omits the directive.
       chrony_log:
         type: str
-        required: false
+        default: ""
+        description: Space-separated Chrony log categories; empty omits the directive.
+      chrony_generic_settings:
+        type: list
+        elements: dict
+        default: []
+        description: Additional directives using key, optional value, and optional minversion fields.

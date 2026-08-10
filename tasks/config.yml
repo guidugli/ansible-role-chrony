@@ -1,0 +1,102 @@
+---
+- name: Gather installed package facts
+  ansible.builtin.package_facts:
+    manager: auto
+  tags:
+    - chrony
+    - config
+
+- name: Select the Chrony package used for version detection
+  ansible.builtin.set_fact:
+    chrony_package_for_version: >-
+      {{ chrony_packages if chrony_packages is string else chrony_packages | first }}
+  tags:
+    - chrony
+    - config
+
+- name: Set the installed Chrony major version
+  ansible.builtin.set_fact:
+    chrony_major_version: >-
+      {{ ansible_facts['packages'][chrony_package_for_version][0]['version']
+         | split('.') | first | int }}
+  when:
+    - ansible_facts['packages'] is defined
+    - chrony_package_for_version in ansible_facts['packages']
+    - ansible_facts['packages'][chrony_package_for_version] | length > 0
+  tags:
+    - chrony
+    - config
+
+- name: Inspect the Chrony drop-in configuration directory
+  ansible.builtin.stat:
+    path: "{{ chrony_etc_path }}/conf.d"
+  register: chrony_conf_d_stat
+  tags:
+    - chrony
+    - config
+
+- name: Inspect the Chrony sources directory
+  ansible.builtin.stat:
+    path: "{{ chrony_etc_path }}/sources.d"
+  register: chrony_sources_d_stat
+  tags:
+    - chrony
+    - config
+
+- name: Record the detected Chrony configuration layout
+  ansible.builtin.set_fact:
+    chrony_conf_dir_exists: >-
+      {{ chrony_conf_d_stat.stat.exists | default(false)
+         and chrony_conf_d_stat.stat.isdir | default(false) }}
+    chrony_sources_dir_exists: >-
+      {{ chrony_sources_d_stat.stat.exists | default(false)
+         and chrony_sources_d_stat.stat.isdir | default(false) }}
+  tags:
+    - chrony
+    - config
+
+- name: Display detected Chrony configuration details
+  ansible.builtin.debug:
+    msg:
+      - "Chrony major version: {{ chrony_major_version | default('unknown') }}"
+      - "conf.d available: {{ chrony_conf_dir_exists }}"
+      - "sources.d available: {{ chrony_sources_dir_exists }}"
+  when: chrony_debug | bool
+  tags:
+    - chrony
+    - config
+
+- name: Render the main Chrony configuration
+  ansible.builtin.template:
+    src: "{{ 'chrony_with_conf_d.conf' if chrony_conf_dir_exists else 'chrony.conf' }}"
+    dest: "{{ chrony_etc_path }}/chrony.conf"
+    mode: "{{ chrony_cfg_mode }}"
+    backup: false
+  notify: Restart Chrony service
+  tags:
+    - chrony
+    - config
+
+- name: Render Chrony conf.d settings
+  ansible.builtin.template:
+    src: conf_d_settings.conf
+    dest: "{{ chrony_etc_path }}/conf.d/01-ansible.conf"
+    mode: "{{ chrony_cfg_mode }}"
+    backup: false
+  when: chrony_conf_dir_exists
+  notify: Restart Chrony service
+  tags:
+    - chrony
+    - config
+
+- name: Render Chrony sources.d settings
+  ansible.builtin.template:
+    src: sources_d_settings.conf
+    dest: "{{ chrony_etc_path }}/sources.d/01-ansible.sources"
+    mode: "{{ chrony_cfg_mode }}"
+    backup: false
+  when: chrony_sources_dir_exists
+  notify: Restart Chrony service
+  tags:
+    - chrony
+    - config

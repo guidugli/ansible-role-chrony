@@ -1,25 +1,96 @@
 ---
-# This is an example playbook to execute Ansible tests.
-
-- name: Verify
+- name: Verify Chrony role
   hosts: all
+  gather_facts: true
   tasks:
-    - name: Gather the package facts
+    - name: Gather installed package facts
       ansible.builtin.package_facts:
         manager: auto
+      tags:
+        - chrony
+        - validate
 
-    - name: Get chronny major version
-      ansible.builtin.set_fact:
-        chrony_major_version: "{{ ansible_facts.packages['chrony'][0].version | split('.') | first | int }}"
+    - name: Assert that the Chrony package is installed
+      ansible.builtin.assert:
+        that:
+          - "'chrony' in ansible_facts['packages']"
+        quiet: true
+      tags:
+        - chrony
+        - validate
 
-    - name: Check if configuration is valid
-      when: chrony_major_version | int(1) >= 4
-      block:
-        - name: Check if configuration is ok
-          ansible.builtin.command: chronyd -p
-          changed_when: false
-          register: chrony_result
+    - name: Check the rendered Chrony configuration
+      ansible.builtin.stat:
+        path: "{{ '/etc/chrony/chrony.conf' if ansible_facts['os_family'] == 'Debian' else '/etc/chrony.conf' }}"
+      register: chrony_config_stat
+      tags:
+        - chrony
+        - validate
 
-        - name: Show output of chronyd -p command
-          ansible.builtin.debug:
-            msg: "{{ chrony_result }}"
+    - name: Assert that the Chrony configuration exists
+      ansible.builtin.assert:
+        that:
+          - chrony_config_stat.stat.exists
+          - chrony_config_stat.stat.isreg
+        quiet: true
+      tags:
+        - chrony
+        - validate
+
+    - name: Read the rendered Chrony configuration files
+      ansible.builtin.find:
+        paths:
+          - /etc
+        patterns:
+          - chrony.conf
+          - 01-ansible.conf
+        recurse: true
+        file_type: file
+      register: chrony_rendered_configs
+      tags:
+        - chrony
+        - validate
+
+    - name: Read rendered Chrony configuration content
+      ansible.builtin.slurp:
+        src: "{{ item.path }}"
+      loop: "{{ chrony_rendered_configs.files }}"
+      register: chrony_rendered_content
+      tags:
+        - chrony
+        - validate
+
+    - name: Assert optional Chrony directives have arguments
+      vars:
+        chrony_rendered_text: "{{ item.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - chrony_rendered_text is not regex('(?m)^hwtimestamp\s*$')
+          - chrony_rendered_text is not regex('(?m)^local\s*$')
+          - chrony_rendered_text is not regex('(?m)^authselectmode\s*$')
+          - chrony_rendered_text is not regex('(?m)^log\s*$')
+          - chrony_rendered_text is not regex('(?m)^minsources\s+0\s*$')
+        quiet: true
+      loop: "{{ chrony_rendered_content.results }}"
+      loop_control:
+        label: "{{ item.source }}"
+      tags:
+        - chrony
+        - validate
+
+    - name: Parse the Chrony configuration
+      ansible.builtin.command: chronyd -p
+      changed_when: false
+      register: chrony_parse_result
+      tags:
+        - chrony
+        - validate
+
+    - name: Assert that Chrony accepted the configuration
+      ansible.builtin.assert:
+        that:
+          - chrony_parse_result.rc == 0
+        quiet: true
+      tags:
+        - chrony
+        - validate
